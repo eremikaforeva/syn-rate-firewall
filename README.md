@@ -1,4 +1,4 @@
-# Linux SYN Rate-Limit Firewall (nftables)
+# SYN Rate-Limit Firewall (nftables)
 
 ## Overview
 This project implements host-based firewall protection on Ubuntu Linux using nftables.  
@@ -47,3 +47,61 @@ timeout 1h
 
 ## Disable 
 sudo nft delete table inet synprotect
+
+
+## Architecture Overview
+
+                ┌────────────────────┐
+Incoming Traffic│  External Network   │
+                └─────────┬──────────┘
+                          │
+                          ▼
+                ┌────────────────────┐
+                │ Linux Host Firewall │
+                │     (nftables)      │
+                └─────────┬──────────┘
+                          │
+          ┌───────────────┼────────────────┐
+          │                                │
+          ▼                                ▼
+ SYN Rate Meter                     Normal Traffic
+ (per source IP)                    Allowed Through
+          │
+          ▼
+Rate Threshold Exceeded?
+          │
+     Yes ─┴─ No
+      │        │
+      ▼        ▼
+Add IP to     Accept
+Blacklist
+(set with
+timeout)
+      │
+      ▼
+Drop Packets
+from Source
+
+
+## Detection & Response Flow
+
+1. Firewall inspects incoming TCP packets
+2. SYN packets are measured per source IP
+3. If SYN rate exceeds threshold:
+   - Source IP added to nftables blacklist set
+   - Packets dropped automatically
+4. Blacklist entries expire after timeout
+5. Legitimate traffic continues normally
+
+## SOC Relevance
+
+This architecture demonstrates:
+
+- Host-based intrusion prevention
+- Automated defensive response
+- Network abuse detection
+- Rate-based anomaly control
+- Blue-team firewall engineering
+
+
+
